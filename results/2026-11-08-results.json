@@ -1,0 +1,615 @@
+{
+ "config": {
+  "kps": [
+   100.0,
+   100.0,
+   100.0,
+   150.0,
+   40.0,
+   40.0,
+   100.0,
+   100.0,
+   100.0,
+   150.0,
+   40.0,
+   40.0
+  ],
+  "kds": [
+   2.0,
+   2.0,
+   2.0,
+   4.0,
+   2.0,
+   2.0,
+   2.0,
+   2.0,
+   2.0,
+   4.0,
+   2.0,
+   2.0
+  ],
+  "default_angles": [
+   -0.1,
+   0.0,
+   0.0,
+   0.3,
+   -0.2,
+   0.0,
+   -0.1,
+   0.0,
+   0.0,
+   0.3,
+   -0.2,
+   0.0
+  ],
+  "cmd_scale": [
+   2.0,
+   2.0,
+   0.25
+  ],
+  "cmd_init": [
+   0.5,
+   0.0,
+   0.0
+  ],
+  "simulation_dt": 0.002,
+  "control_decimation": 10.0,
+  "ang_vel_scale": 0.25,
+  "dof_pos_scale": 1.0,
+  "dof_vel_scale": 0.05,
+  "action_scale": 0.25,
+  "num_actions": 12.0,
+  "num_obs": 47.0
+ },
+ "kd_damp": 8.0,
+ "t_stop_s": 4.0,
+ "t_after_s": 4.0,
+ "settle_s": 2.0,
+ "results": [
+  {
+   "mode": "continue",
+   "walk_x_at_stop_m": 1.756,
+   "walk_speed_at_stop_mps": 0.496,
+   "walk_min_pelvis_z_m": 0.763,
+   "walk_max_tilt_deg": 4.0,
+   "walk_nonfoot_floor_contacts": 0,
+   "walk_nonfoot_first": [],
+   "first_nonfoot_touch": null,
+   "pelvis_body_touch": null,
+   "bodies_on_floor": [],
+   "shapes_on_floor": [],
+   "min_pelvis_z_after_m": 0.763,
+   "max_tilt_after_deg": 3.6,
+   "end_pelvis_z_m": 0.772,
+   "end_tilt_deg": 1.4,
+   "upright_at_end": true,
+   "travel_after_stop_m": 1.9,
+   "pelvis_still_after_s": null,
+   "travel_to_still_m": null
+  },
+  {
+   "mode": "stopmove",
+   "walk_x_at_stop_m": 1.756,
+   "walk_speed_at_stop_mps": 0.496,
+   "walk_min_pelvis_z_m": 0.763,
+   "walk_max_tilt_deg": 4.0,
+   "walk_nonfoot_floor_contacts": 0,
+   "walk_nonfoot_first": [],
+   "first_nonfoot_touch": null,
+   "pelvis_body_touch": null,
+   "bodies_on_floor": [],
+   "shapes_on_floor": [],
+   "min_pelvis_z_after_m": 0.767,
+   "max_tilt_after_deg": 3.9,
+   "end_pelvis_z_m": 0.779,
+   "end_tilt_deg": 1.5,
+   "upright_at_end": true,
+   "travel_after_stop_m": 0.199,
+   "pelvis_still_after_s": null,
+   "travel_to_still_m": null
+  },
+  {
+   "mode": "hold_last",
+   "walk_x_at_stop_m": 1.756,
+   "walk_speed_at_stop_mps": 0.496,
+   "walk_min_pelvis_z_m": 0.763,
+   "walk_max_tilt_deg": 4.0,
+   "walk_nonfoot_floor_contacts": 0,
+   "walk_nonfoot_first": [],
+   "first_nonfoot_touch": {
+    "body": "pelvis",
+    "shape": "right_wrist_roll_rubber_hand",
+    "t_after_stop_s": 0.962,
+    "speed_mps": 3.0
+   },
+   "pelvis_body_touch": {
+    "shape": "right_wrist_roll_rubber_hand",
+    "t_after_stop_s": 0.962,
+    "speed_mps": 3.0
+   },
+   "bodies_on_floor": [
+    "pelvis",
+    "right_hip_yaw_link",
+    "right_knee_link",
+    "right_hip_roll_link",
+    "right_hip_pitch_link",
+    "left_hip_pitch_link"
+   ],
+   "shapes_on_floor": [
+    {
+     "shape": "right_wrist_roll_rubber_hand",
+     "body": "pelvis",
+     "t_after_stop_s": 0.962,
+     "speed_mps": 3.0
+    },
+    {
+     "shape": "right_hip_yaw_link",
+     "body": "right_hip_yaw_link",
+     "t_after_stop_s": 1.19,
+     "speed_mps": 1.27
+    },
+    {
+     "shape": "right_knee_link",
+     "body": "right_knee_link",
+     "t_after_stop_s": 1.19,
+     "speed_mps": 1.69
+    },
+    {
+     "shape": "right_hip_roll_link",
+     "body": "right_hip_roll_link",
+     "t_after_stop_s": 1.198,
+     "speed_mps": 0.91
+    },
+    {
+     "shape": "right_hip_pitch_link",
+     "body": "right_hip_pitch_link",
+     "t_after_stop_s": 1.22,
+     "speed_mps": 0.8
+    },
+    {
+     "shape": "right_elbow_link",
+     "body": "pelvis",
+     "t_after_stop_s": 1.248,
+     "speed_mps": 0.46
+    },
+    {
+     "shape": "right_shoulder_yaw_link",
+     "body": "pelvis",
+     "t_after_stop_s": 1.26,
+     "speed_mps": 0.34
+    },
+    {
+     "shape": "pelvis cylinder #23",
+     "body": "pelvis",
+     "t_after_stop_s": 1.272,
+     "speed_mps": 0.22
+    },
+    {
+     "shape": "pelvis cylinder #21",
+     "body": "pelvis",
+     "t_after_stop_s": 1.29,
+     "speed_mps": 0.2
+    },
+    {
+     "shape": "logo_link",
+     "body": "pelvis",
+     "t_after_stop_s": 1.494,
+     "speed_mps": 0.85
+    },
+    {
+     "shape": "torso_link_23dof_rev_1_0",
+     "body": "pelvis",
+     "t_after_stop_s": 1.496,
+     "speed_mps": 0.8
+    },
+    {
+     "shape": "pelvis_contour_link",
+     "body": "pelvis",
+     "t_after_stop_s": 1.596,
+     "speed_mps": 0.86
+    },
+    {
+     "shape": "left_hip_pitch_link",
+     "body": "left_hip_pitch_link",
+     "t_after_stop_s": 1.602,
+     "speed_mps": 0.87
+    },
+    {
+     "shape": "pelvis cylinder #13",
+     "body": "pelvis",
+     "t_after_stop_s": 1.662,
+     "speed_mps": 0.34
+    },
+    {
+     "shape": "left_shoulder_yaw_link",
+     "body": "pelvis",
+     "t_after_stop_s": 1.662,
+     "speed_mps": 0.26
+    },
+    {
+     "shape": "pelvis cylinder #11",
+     "body": "pelvis",
+     "t_after_stop_s": 1.666,
+     "speed_mps": 0.23
+    }
+   ],
+   "min_pelvis_z_after_m": 0.06,
+   "max_tilt_after_deg": 91.4,
+   "end_pelvis_z_m": 0.062,
+   "end_tilt_deg": 87.6,
+   "upright_at_end": false,
+   "travel_after_stop_m": 1.243,
+   "pelvis_still_after_s": 2.84,
+   "travel_to_still_m": 1.243
+  },
+  {
+   "mode": "hold_default",
+   "walk_x_at_stop_m": 1.756,
+   "walk_speed_at_stop_mps": 0.496,
+   "walk_min_pelvis_z_m": 0.763,
+   "walk_max_tilt_deg": 4.0,
+   "walk_nonfoot_floor_contacts": 0,
+   "walk_nonfoot_first": [],
+   "first_nonfoot_touch": {
+    "body": "pelvis",
+    "shape": "right_wrist_roll_rubber_hand",
+    "t_after_stop_s": 0.928,
+    "speed_mps": 3.03
+   },
+   "pelvis_body_touch": {
+    "shape": "right_wrist_roll_rubber_hand",
+    "t_after_stop_s": 0.928,
+    "speed_mps": 3.03
+   },
+   "bodies_on_floor": [
+    "pelvis"
+   ],
+   "shapes_on_floor": [
+    {
+     "shape": "right_wrist_roll_rubber_hand",
+     "body": "pelvis",
+     "t_after_stop_s": 0.928,
+     "speed_mps": 3.03
+    },
+    {
+     "shape": "left_wrist_roll_rubber_hand",
+     "body": "pelvis",
+     "t_after_stop_s": 1.016,
+     "speed_mps": 0.66
+    }
+   ],
+   "min_pelvis_z_after_m": 0.311,
+   "max_tilt_after_deg": 78.1,
+   "end_pelvis_z_m": 0.311,
+   "end_tilt_deg": 68.6,
+   "upright_at_end": false,
+   "travel_after_stop_m": 0.854,
+   "pelvis_still_after_s": 2.4,
+   "travel_to_still_m": 0.858
+  },
+  {
+   "mode": "damp_kd8",
+   "walk_x_at_stop_m": 1.756,
+   "walk_speed_at_stop_mps": 0.496,
+   "walk_min_pelvis_z_m": 0.763,
+   "walk_max_tilt_deg": 4.0,
+   "walk_nonfoot_floor_contacts": 0,
+   "walk_nonfoot_first": [],
+   "first_nonfoot_touch": {
+    "body": "left_knee_link",
+    "shape": "left_knee_link",
+    "t_after_stop_s": 0.722,
+    "speed_mps": 0.68
+   },
+   "pelvis_body_touch": {
+    "shape": "right_wrist_roll_rubber_hand",
+    "t_after_stop_s": 0.894,
+    "speed_mps": 2.08
+   },
+   "bodies_on_floor": [
+    "left_knee_link",
+    "pelvis",
+    "right_hip_pitch_link",
+    "left_hip_pitch_link"
+   ],
+   "shapes_on_floor": [
+    {
+     "shape": "left_knee_link",
+     "body": "left_knee_link",
+     "t_after_stop_s": 0.722,
+     "speed_mps": 0.68
+    },
+    {
+     "shape": "right_wrist_roll_rubber_hand",
+     "body": "pelvis",
+     "t_after_stop_s": 0.894,
+     "speed_mps": 2.08
+    },
+    {
+     "shape": "right_elbow_link",
+     "body": "pelvis",
+     "t_after_stop_s": 1.154,
+     "speed_mps": 1.19
+    },
+    {
+     "shape": "right_shoulder_yaw_link",
+     "body": "pelvis",
+     "t_after_stop_s": 1.158,
+     "speed_mps": 1.14
+    },
+    {
+     "shape": "pelvis cylinder #23",
+     "body": "pelvis",
+     "t_after_stop_s": 1.16,
+     "speed_mps": 1.01
+    },
+    {
+     "shape": "pelvis cylinder #21",
+     "body": "pelvis",
+     "t_after_stop_s": 1.166,
+     "speed_mps": 0.42
+    },
+    {
+     "shape": "right_hip_pitch_link",
+     "body": "right_hip_pitch_link",
+     "t_after_stop_s": 1.25,
+     "speed_mps": 0.3
+    },
+    {
+     "shape": "logo_link",
+     "body": "pelvis",
+     "t_after_stop_s": 1.392,
+     "speed_mps": 1.0
+    },
+    {
+     "shape": "torso_link_23dof_rev_1_0",
+     "body": "pelvis",
+     "t_after_stop_s": 1.394,
+     "speed_mps": 0.91
+    },
+    {
+     "shape": "pelvis_contour_link",
+     "body": "pelvis",
+     "t_after_stop_s": 1.434,
+     "speed_mps": 0.75
+    },
+    {
+     "shape": "left_hip_pitch_link",
+     "body": "left_hip_pitch_link",
+     "t_after_stop_s": 1.51,
+     "speed_mps": 0.44
+    },
+    {
+     "shape": "left_shoulder_yaw_link",
+     "body": "pelvis",
+     "t_after_stop_s": 1.542,
+     "speed_mps": 0.16
+    }
+   ],
+   "min_pelvis_z_after_m": 0.061,
+   "max_tilt_after_deg": 90.9,
+   "end_pelvis_z_m": 0.063,
+   "end_tilt_deg": 87.4,
+   "upright_at_end": false,
+   "travel_after_stop_m": 1.005,
+   "pelvis_still_after_s": 3.24,
+   "travel_to_still_m": 1.005
+  },
+  {
+   "mode": "zero_torque",
+   "walk_x_at_stop_m": 1.756,
+   "walk_speed_at_stop_mps": 0.496,
+   "walk_min_pelvis_z_m": 0.763,
+   "walk_max_tilt_deg": 4.0,
+   "walk_nonfoot_floor_contacts": 0,
+   "walk_nonfoot_first": [],
+   "first_nonfoot_touch": {
+    "body": "right_knee_link",
+    "shape": "right_knee_link",
+    "t_after_stop_s": 0.292,
+    "speed_mps": 1.55
+   },
+   "pelvis_body_touch": {
+    "shape": "left_shoulder_yaw_link",
+    "t_after_stop_s": 1.67,
+    "speed_mps": 0.95
+   },
+   "bodies_on_floor": [
+    "right_knee_link",
+    "left_knee_link",
+    "right_hip_yaw_link",
+    "left_hip_pitch_link",
+    "left_hip_roll_link",
+    "left_hip_yaw_link",
+    "pelvis",
+    "right_hip_pitch_link",
+    "right_hip_roll_link"
+   ],
+   "shapes_on_floor": [
+    {
+     "shape": "right_knee_link",
+     "body": "right_knee_link",
+     "t_after_stop_s": 0.292,
+     "speed_mps": 1.55
+    },
+    {
+     "shape": "left_knee_link",
+     "body": "left_knee_link",
+     "t_after_stop_s": 0.694,
+     "speed_mps": 0.21
+    },
+    {
+     "shape": "right_hip_yaw_link",
+     "body": "right_hip_yaw_link",
+     "t_after_stop_s": 0.748,
+     "speed_mps": 0.59
+    },
+    {
+     "shape": "left_hip_pitch_link",
+     "body": "left_hip_pitch_link",
+     "t_after_stop_s": 0.868,
+     "speed_mps": 0.66
+    },
+    {
+     "shape": "left_hip_roll_link",
+     "body": "left_hip_roll_link",
+     "t_after_stop_s": 1.302,
+     "speed_mps": 0.14
+    },
+    {
+     "shape": "left_hip_yaw_link",
+     "body": "left_hip_yaw_link",
+     "t_after_stop_s": 1.328,
+     "speed_mps": 0.1
+    },
+    {
+     "shape": "left_shoulder_yaw_link",
+     "body": "pelvis",
+     "t_after_stop_s": 1.67,
+     "speed_mps": 0.95
+    },
+    {
+     "shape": "pelvis cylinder #11",
+     "body": "pelvis",
+     "t_after_stop_s": 1.672,
+     "speed_mps": 1.33
+    },
+    {
+     "shape": "pelvis cylinder #13",
+     "body": "pelvis",
+     "t_after_stop_s": 1.672,
+     "speed_mps": 1.11
+    },
+    {
+     "shape": "logo_link",
+     "body": "pelvis",
+     "t_after_stop_s": 1.73,
+     "speed_mps": 0.87
+    },
+    {
+     "shape": "torso_link_23dof_rev_1_0",
+     "body": "pelvis",
+     "t_after_stop_s": 1.732,
+     "speed_mps": 0.75
+    },
+    {
+     "shape": "pelvis_contour_link",
+     "body": "pelvis",
+     "t_after_stop_s": 1.806,
+     "speed_mps": 0.66
+    },
+    {
+     "shape": "right_hip_pitch_link",
+     "body": "right_hip_pitch_link",
+     "t_after_stop_s": 1.892,
+     "speed_mps": 0.15
+    },
+    {
+     "shape": "right_hip_roll_link",
+     "body": "right_hip_roll_link",
+     "t_after_stop_s": 2.536,
+     "speed_mps": 0.5
+    }
+   ],
+   "min_pelvis_z_after_m": 0.061,
+   "max_tilt_after_deg": 92.1,
+   "end_pelvis_z_m": 0.064,
+   "end_tilt_deg": 88.1,
+   "upright_at_end": false,
+   "travel_after_stop_m": 0.544,
+   "pelvis_still_after_s": 2.4,
+   "travel_to_still_m": 0.545
+  },
+  {
+   "mode": "stopmove_then_damp",
+   "walk_x_at_stop_m": 1.756,
+   "walk_speed_at_stop_mps": 0.496,
+   "walk_min_pelvis_z_m": 0.763,
+   "walk_max_tilt_deg": 4.0,
+   "walk_nonfoot_floor_contacts": 0,
+   "walk_nonfoot_first": [],
+   "first_nonfoot_touch": {
+    "body": "right_knee_link",
+    "shape": "right_knee_link",
+    "t_after_stop_s": 3.032,
+    "speed_mps": 0.81
+   },
+   "pelvis_body_touch": {
+    "shape": "right_elbow_link",
+    "t_after_stop_s": 3.124,
+    "speed_mps": 1.17
+   },
+   "bodies_on_floor": [
+    "right_knee_link",
+    "right_hip_pitch_link",
+    "right_hip_roll_link",
+    "right_hip_yaw_link",
+    "pelvis"
+   ],
+   "shapes_on_floor": [
+    {
+     "shape": "right_knee_link",
+     "body": "right_knee_link",
+     "t_after_stop_s": 3.032,
+     "speed_mps": 0.81
+    },
+    {
+     "shape": "right_hip_pitch_link",
+     "body": "right_hip_pitch_link",
+     "t_after_stop_s": 3.068,
+     "speed_mps": 1.96
+    },
+    {
+     "shape": "right_hip_roll_link",
+     "body": "right_hip_roll_link",
+     "t_after_stop_s": 3.068,
+     "speed_mps": 1.72
+    },
+    {
+     "shape": "right_hip_yaw_link",
+     "body": "right_hip_yaw_link",
+     "t_after_stop_s": 3.068,
+     "speed_mps": 0.8
+    },
+    {
+     "shape": "right_elbow_link",
+     "body": "pelvis",
+     "t_after_stop_s": 3.124,
+     "speed_mps": 1.17
+    },
+    {
+     "shape": "right_wrist_roll_rubber_hand",
+     "body": "pelvis",
+     "t_after_stop_s": 3.124,
+     "speed_mps": 1.24
+    },
+    {
+     "shape": "right_shoulder_yaw_link",
+     "body": "pelvis",
+     "t_after_stop_s": 3.144,
+     "speed_mps": 0.27
+    },
+    {
+     "shape": "pelvis cylinder #23",
+     "body": "pelvis",
+     "t_after_stop_s": 3.152,
+     "speed_mps": 0.29
+    },
+    {
+     "shape": "pelvis cylinder #21",
+     "body": "pelvis",
+     "t_after_stop_s": 3.16,
+     "speed_mps": 0.26
+    }
+   ],
+   "min_pelvis_z_after_m": 0.168,
+   "max_tilt_after_deg": 105.8,
+   "end_pelvis_z_m": 0.168,
+   "end_tilt_deg": 85.8,
+   "upright_at_end": false,
+   "travel_after_stop_m": 0.605,
+   "pelvis_still_after_s": null,
+   "travel_to_still_m": null
+  }
+ ]
+}
