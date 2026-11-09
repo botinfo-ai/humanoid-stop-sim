@@ -1,7 +1,8 @@
 # humanoid-stop-sim
 
 What each kind of "stop" does to a **walking** Unitree G1, in simulation, under **Unitree's own published walking
-policy**. One script, numpy and MuJoCo only (no torch).
+policy**: seven modes stopped at one moment ([sim/stop_walk.py](sim/stop_walk.py)), and five of them stopped at 20
+moments spread over one whole gait cycle ([sim/stop_sweep.py](sim/stop_sweep.py)). numpy and MuJoCo only (no torch).
 
 > Simulation only. A run is what one model did in simulation, not what a real robot does. Nothing here has run on
 > hardware, and none of it says whether any stop is right for a given setup.
@@ -105,6 +106,42 @@ Read in this model:
   [E-Stop service page](https://dev.bostondynamics.com/docs/concepts/estop_service) (read 2026-11-08). This script has
   no sit-down step.
 
+## Sweep: the same stops at 20 moments of one gait cycle (2026-11-09)
+
+The table above rests on one stop moment. [`sim/stop_sweep.py`](sim/stop_sweep.py) keeps `stop_walk.py`'s loader,
+network, deploy loop and contact reporting, and applies five of the stops (`stopmove`, `hold_last`, `hold_default`,
+`damp_kd8`, `zero_torque`) at 20 moments from 4.00 s to 4.76 s in 0.04 s steps: phase 0 to 0.95 of the policy's
+0.8 s phase clock, so every part of a step is covered once. Each run goes on for 4 s after its stop. The printed table,
+one row per moment and mode, is [results/2026-11-09-stop_sweep.md](results/2026-11-09-stop_sweep.md), and every
+field is in [results/2026-11-09-sweep-results.json](results/2026-11-09-sweep-results.json).
+
+- A control run walked on to 8.76 s with no stop: no floor contact by anything but the feet, upright, 2.3 degrees of
+  tilt at the end.
+- At the stop, one foot was on the floor at 18 of the 20 moments (the right at 9, the left at 9) and both feet at 2
+  (4.04 s and 4.44 s).
+- The 4.00 s rows repeat the single-run table above exactly (first touches at 0.962, 0.928, 0.722 and 0.292 s).
+
+| Mode | Upright 4 s after the stop | First non-foot touch after the stop, s: min / median / max | Its speed, m/s: min / median / max | Which shape touched first | Torso shape touched the floor | Head shape touched the floor |
+|---|---|---|---|---|---|---|
+| `stopmove` | 20 of 20 | none | - | - | 0 of 20 | 0 of 20 |
+| `hold_last` | 0 of 20 | 0.842 / 0.894 / 1.062 | 1.07 / 1.145 / 3.2 | `right_knee_link` 8, `left_wrist_roll_rubber_hand` 6, `left_knee_link` 5, `right_wrist_roll_rubber_hand` 1 | 19 of 20, 1.158-1.592 s, at most 1.33 m/s | 8 of 20, at most 0.59 m/s |
+| `hold_default` | 0 of 20 | 0.878 / 0.909 / 0.96 | 3.01 / 3.03 / 3.13 | `left_wrist_roll_rubber_hand` 12, `right_wrist_roll_rubber_hand` 8 | 0 of 20 | 0 of 20 |
+| `damp_kd8` | 0 of 20 | 0.662 / 0.684 / 0.798 | 0.5 / 0.665 / 0.72 | `left_knee_link` 10, `right_knee_link` 10 | 16 of 20, 1.318-3.334 s, at most 0.91 m/s | 2 of 20, at most 0.91 m/s |
+| `zero_torque` | 0 of 20 | 0.268 / 0.301 / 0.318 | 1.45 / 1.545 / 1.6 | `left_knee_link` 11, `right_knee_link` 9 | 19 of 20, 1.234-2.638 s, at most 2.21 m/s | 4 of 20, at most 2.62 m/s |
+
+Read in this model:
+
+- The split did not depend on the moment. The zero-velocity command kept the G1 upright at all 20 moments (pelvis
+  0.773-0.781 m high 4 s later, after 0.183-0.238 m of travel). Each of the other four stops left it not upright at
+  all 20, with the pelvis 0.061-0.313 m above the floor 4 s after the stop, including the two moments with both feet
+  down.
+- The order of the first touch held at every moment: `zero_torque` first (0.268-0.318 s, a knee), then `damp_kd8`
+  (0.662-0.798 s, a knee), then the two hold modes (0.842-1.062 s). The first touch moved by at most 0.22 s across the
+  cycle in any mode.
+- `hold_default` always landed on a hand first at about 3 m/s and ended propped on its two rigid hands (pelvis
+  0.311-0.313 m); its torso shape never touched. `hold_last` hit a knee first at 13 moments and a hand at 7.
+- `stopmove_then_damp` and `continue` are not in the sweep.
+
 ## What this does not show
 
 - **The upper body is one rigid piece.** In Unitree's `g1_12dof.xml` the torso, head, logo, shoulders, elbows and
@@ -114,8 +151,9 @@ Read in this model:
   G1, whose code is in neither repo.
 - **The port was not compared with torch's output.** The evidence that it runs the policy as trained is that the G1
   walks at the commanded speed (0.496 m/s at the stop, 1.756 m in 4 s) with no fall and no non-foot contact.
-- One run per mode, from one moment in the gait (4.0 s into the walk). A stop at another phase of the step can
-  give other times.
+- One walking speed (the config's 0.5 m/s, straight ahead) and one gait cycle. The single-run table is one moment
+  (4.0 s into the walk); the sweep adds 20 moments of one cycle, one run each. Turning, other speeds, standing still
+  and pushes were not tried.
 - Tested only in BotInfo's sealed sandbox, with numpy 2.0.2 and mujoco 3.3.7 (printed at the top of the run's
   table). Other versions were not tried.
 
@@ -169,9 +207,12 @@ mkdir -p in/unitreerobotics out
 git clone https://github.com/unitreerobotics/unitree_rl_gym in/unitreerobotics/unitree_rl_gym
 git -C in/unitreerobotics/unitree_rl_gym checkout 3e70454dae9562febade2949c9ebc57440365dcb
 python3 sim/stop_walk.py in out
+python3 sim/stop_sweep.py in out-sweep
 ```
 
-It prints the table and writes `out/results.json` and `out/stop_walk.md`. The last part of the script is
+`stop_walk.py` prints the table and writes `out/results.json` and `out/stop_walk.md`. `stop_sweep.py` prints the
+sweep table and writes `out-sweep/results.json` and `out-sweep/stop_sweep.md` (it needs no `in/menagerie` folder and
+writes no video). The last part of the script is
 BotInfo-only: it writes a video description for BotInfo's own renderer from `in/menagerie/unitree_g1/scene.xml`
 (MuJoCo Menagerie's 29-joint G1, posed from the run's pelvis and leg angles, with its waist and arms at Menagerie's
 zero rather than the 12-joint model's fixed arm pose). Without that folder it prints `video skipped` and the table is
