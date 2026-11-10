@@ -46,7 +46,6 @@ CFG = os.path.join(RL, "deploy", "deploy_mujoco", "configs", "g1.yaml")
 POLICY = os.path.join(RL, "deploy", "pre_train", "g1", "motion.pt")
 SCENE = os.path.join(RL, "resources", "robots", "g1_description", "scene.xml")
 HELPER = os.path.join(RL, "deploy", "deploy_real", "common", "command_helper.py")
-MENAGERIE = os.path.join(IN, "menagerie", "unitree_g1", "scene.xml")
 
 T_STOP = 4.0          # s of walking before the stop
 T_AFTER = 4.0         # s simulated after the stop
@@ -119,9 +118,14 @@ def rebuild_tensor(storage, offset, size, stride, *rest):
     raw, dt = storage
     item = np.dtype(dt).itemsize
     base = np.frombuffer(raw, dtype=dt)
+    offset, size, stride = int(offset), tuple(int(n) for n in size), tuple(int(s) for s in stride)
+    if offset < 0 or len(size) != len(stride) or any(v < 0 for v in size + stride):
+        raise ValueError("policy file: a tensor has a malformed layout")
+    if 0 not in size and offset + sum((n - 1) * s for n, s in zip(size, stride)) >= base.size:
+        raise ValueError("policy file: a tensor reaches past the end of its storage")   # checked before as_strided
     if len(size) == 0:
         return np.array(base[offset])
-    arr = np.lib.stride_tricks.as_strided(base[offset:], shape=tuple(size), strides=tuple(s * item for s in stride))
+    arr = np.lib.stride_tricks.as_strided(base[offset:], shape=size, strides=tuple(s * item for s in stride))
     return np.array(arr)
 
 
@@ -376,12 +380,10 @@ def summarize(mode, rec, first, first_part, walk_bad, at_stop):
     return out
 
 
-results, recs = [], {}
+results = []
 for mode in MODES:
     rec, first, first_part, walk_bad, at_stop = run(mode)
-    s = summarize(mode, rec, first, first_part, walk_bad, at_stop)
-    results.append(s)
-    recs[mode] = rec
+    results.append(summarize(mode, rec, first, first_part, walk_bad, at_stop))
 
 say("")
 say(f"## {T_STOP:g} s of walking at cmd {C['cmd_init']}, then the stop; {T_AFTER:g} s after it")
@@ -407,72 +409,6 @@ for s in results:
 with open(os.path.join(OUT, "results.json"), "w") as f:
     json.dump({"config": {k: v for k, v in C.items()}, "kd_damp": KD_DAMP, "t_stop_s": T_STOP,
                "t_after_s": T_AFTER, "settle_s": SETTLE_S, "results": results}, f, indent=1)
-
-# ------------------------------------------------------------------ BotInfo-only: a video spec (not needed for the table)
-# Writes video.json for BotInfo's own renderer (inputs/menagerie, an AI voice). It poses MuJoCo Menagerie's 29-DoF G1
-# by joint name: the pelvis and legs follow this run; the waist and arms stay at Menagerie's zero, not at the fixed
-# arm pose of the 12-DoF model simulated above. Outside BotInfo the menagerie input is missing and this part skips.
-def friendly(shape):
-    return re.sub(r"_(23|29)dof.*$", "", shape).replace("_link", "").replace("_rubber_hand", " hand").replace("_", " ")
-
-
-try:
-    mm = mujoco.MjModel.from_xml_path(MENAGERIE)
-    mj = {mujoco.mj_id2name(mm, mujoco.mjtObj.mjOBJ_JOINT, j): mm.jnt_qposadr[j] for j in range(mm.njnt)}
-    src = {n: 7 + i for i, n in enumerate(jnames)}
-    free = [n for n in mj if mm.jnt_type[list(mj).index(n)] == mujoco.mjtJoint.mjJNT_FREE][0]
-
-    def to_menagerie(qs):
-        out = np.zeros((len(qs), mm.nq))
-        out[:, mj[free]:mj[free] + 7] = qs[:, :7]
-        for n, a in src.items():
-            out[:, mj[n]] = qs[:, a]
-        return out
-
-    clip_modes = ["stopmove", "hold_last", "damp_kd8", "zero_torque"]
-    label = {"stopmove": "VELOCITY TO ZERO", "hold_last": "FREEZE THE JOINTS", "damp_kd8": "DAMP (kp 0, kd 8)",
-             "zero_torque": "ZERO TORQUE"}
-    spoken = {"stopmove": "Velocity to zero", "hold_last": "Freeze every joint",
-              "damp_kd8": "Damping, as Unitree's deploy script exits", "zero_torque": "Zero torque"}
-    parts, caps, narr, t0 = [], [], [], 0.0
-    R = {s["mode"]: s for s in results}
-    for i, mode in enumerate(clip_modes):
-        rec = recs[mode]
-        sel = (rec["t"] >= T_STOP - 1.0 - 1e-9) & (rec["t"] <= T_STOP + 3.0 + 1e-9)
-        qs = to_menagerie(np.array(rec["qpos"])[sel])
-        np.save(os.path.join(OUT, f"qpos_{mode}.npy"), qs)
-        dur = len(qs) / FPS
-        parts.append({"render": {"model": "unitree_g1", "scene": "scene.xml", "qpos": f"qpos_{mode}.npy",
-                                 "camera": {"distance": 3.2, "azimuth": 120, "elevation": -12,
-                                            "lookat": [0, 0, 0.6]}, "track": "pelvis"}})
-        s = R[mode]
-        f = s["first_nonfoot_touch"]
-        if f is not None:
-            part = friendly(f["shape"])
-            cap = f"{part} touches the floor {f['t_after_stop_s']:.1f} s after the stop"
-            said = f"the {part} touches the floor {f['t_after_stop_s']:.1f} seconds after the stop."
-        elif s["upright_at_end"]:
-            cap = f"still upright, {s['travel_after_stop_m']:.2f} m past the stop point"
-            said = "it stays upright."
-        else:
-            cap = f"feet only on the floor, pelvis tilted {s['end_tilt_deg']:.0f} deg"
-            said = f"it ends tilted {s['end_tilt_deg']:.0f} degrees."
-        caps.append({"from": round(t0, 2), "to": round(t0 + dur, 2), "text": f"{label[mode]}: {cap}"})
-        intro = "Unitree's G1 walking policy, in simulation. " if i == 0 else ""
-        narr.append({"at": round(t0 + 0.1, 2), "text": f"{intro}{spoken[mode]}: {said}"})
-        t0 += dur
-    video = {"name": "g1-walk-stops", "size": "vertical", "fps": FPS, "parts": parts, "captions": caps,
-             "narration": narr, "voice": "Charon"}
-    with open(os.path.join(OUT, "video.json"), "w") as f:
-        json.dump(video, f, indent=1)
-    say("")
-    say(f"video.json: {len(parts)} parts, {t0:.1f} s, menagerie nq {mm.nq}")
-    for c in caps:
-        say(f"  caption {c['from']}-{c['to']}: {c['text']}")
-    for n in narr:
-        say(f"  narration @{n['at']}: {n['text']}")
-except Exception as e:                                       # the table above stands without the video
-    say(f"video skipped: {type(e).__name__}: {e}")
 
 with open(os.path.join(OUT, "stop_walk.md"), "w") as f:
     f.write("\n".join(lines) + "\n")

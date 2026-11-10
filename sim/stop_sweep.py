@@ -110,9 +110,14 @@ def rebuild_tensor(storage, offset, size, stride, *rest):
     raw, dt = storage
     item = np.dtype(dt).itemsize
     base = np.frombuffer(raw, dtype=dt)
+    offset, size, stride = int(offset), tuple(int(n) for n in size), tuple(int(s) for s in stride)
+    if offset < 0 or len(size) != len(stride) or any(v < 0 for v in size + stride):
+        raise ValueError("policy file: a tensor has a malformed layout")
+    if 0 not in size and offset + sum((n - 1) * s for n, s in zip(size, stride)) >= base.size:
+        raise ValueError("policy file: a tensor reaches past the end of its storage")   # checked before as_strided
     if len(size) == 0:
         return np.array(base[offset])
-    arr = np.lib.stride_tricks.as_strided(base[offset:], shape=tuple(size), strides=tuple(s * item for s in stride))
+    arr = np.lib.stride_tricks.as_strided(base[offset:], shape=size, strides=tuple(s * item for s in stride))
     return np.array(arr)
 
 
