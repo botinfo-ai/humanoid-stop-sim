@@ -1,13 +1,16 @@
 # humanoid-stop-sim
 
 What each kind of "stop" does to a **walking** Unitree G1, in simulation, under **Unitree's own published walking
-policy**: seven modes stopped at one moment ([sim/stop_walk.py](sim/stop_walk.py)), five of them stopped at 20
-moments spread over one whole gait cycle ([sim/stop_sweep.py](sim/stop_sweep.py)), and six two-stage stops (zero
-velocity first, then the policy switched off) at the same 20 moments ([sim/stop_handoff.py](sim/stop_handoff.py)),
-and eight policy-off holds of different stiffness, from a clean standing start and after a zero-velocity hand-off,
-with the model's joint torque caps on and off ([sim/hold_stiffness.py](sim/hold_stiffness.py)). Some modes reproduce
-Unitree's own stop commands; the others are ours, marked in the first table's "Origin" column and in each later
-section. numpy and MuJoCo only (no torch).
+policies**. For the 12-joint policy in `unitree_rl_gym`: seven modes stopped at one moment
+([sim/stop_walk.py](sim/stop_walk.py)), five of them stopped at 20 moments spread over one whole gait cycle
+([sim/stop_sweep.py](sim/stop_sweep.py)), and six two-stage stops (zero velocity first, then the policy switched off)
+at the same 20 moments ([sim/stop_handoff.py](sim/stop_handoff.py)), and eight policy-off holds of different
+stiffness, from a clean standing start and after a zero-velocity hand-off, with the model's joint torque caps on and
+off ([sim/hold_stiffness.py](sim/hold_stiffness.py)). For the 29-joint policy in `unitree_rl_mjlab`: nine stops at 30
+moments of one gait cycle, at two walking speeds and on two bodies ([sim/mjlab_stop.py](sim/mjlab_stop.py), the
+section [A second policy](#a-second-policy-unitrees-mjlab-g1-velocity-policy-29-joints-2026-11-10)). Some modes
+reproduce Unitree's own stop commands; the others are ours, marked in each section's "Origin" column or text. numpy
+and MuJoCo only (no torch, no onnxruntime).
 
 > Simulation only. A run is what one model did in simulation, not what a real robot does. Nothing here has run on
 > hardware, and none of it says whether any stop is right for a given setup.
@@ -281,7 +284,113 @@ joint for more than its cap, at `legs_x4` with a request over a cap on at most 0
 times the config's ankle kp with ankle requests over the 50 N*m caps. This is one 12-joint model, one policy and one
 start pose; it says nothing about a real G1's own controllers.
 
+## A second policy: Unitree's mjlab G1 velocity policy, 29 joints (2026-11-10)
+
+Everything above is one 12-joint policy. Unitree's
+[`unitree_rl_mjlab`](https://github.com/unitreerobotics/unitree_rl_mjlab/tree/1425b15f73bd4095f0df53709d7c389c3eb9e790)
+(commit `1425b15f`) ships a second G1 walking policy, trained with mjlab on MuJoCo physics, for all 29 joints:
+`deploy/robots/g1/config/policy/velocity/v0/exported/policy.onnx`, the parameters its real-robot deploy loads
+(`.../v0/params/deploy.yaml`), the deploy's state machine (`deploy/robots/g1/config/config.yaml`) and the training
+model (`src/assets/robots/unitree_g1/xmls/g1.xml`). [`sim/mjlab_stop.py`](sim/mjlab_stop.py) reads the ONNX file by
+hand (it never imports onnxruntime) and evaluates it in numpy: an input normaliser, then 98 -> 512 -> 256 -> 128 -> 29
+with ELU. It rebuilds the training physics from those files and from the motor constants in the repo's
+`g1_constants.py`, which are written into the script: 0.005 s physics steps, 4 per 0.02 s policy step, the joints'
+armature and effort limits, and the foot collision shapes. The run prints its checks: the gains, damping and action
+scale those constants imply equal `deploy.yaml`'s (True, True, True); the policy's output for an all-zero
+observation equals a recon run's to the 4 decimals that run printed (REPRO, max difference 0); the G1 stands 10 s at zero command (pelvis 0.784 m, tilt
+under 1 degree); and it walks at 0.509 m/s and 1.015 m/s when asked for 0.5 and 1.0, with no fall and no non-foot
+contact. The same sweep also runs on MuJoCo Menagerie's `unitree_g1` with the same actuators, as a second body (same
+body masses, different collision shapes).
+
+The deploy's own stops. In `config.yaml` the walking state (`Velocity`) has two exits: `Passive` on LT + B and a dance
+on RB + A (L66-69). `Passive` sets kp 0 and kd 3 on all 29 motors (L16-32). Nothing leads from walking back to
+`FixStand`, the state that ramps the joints to the default pose over 2 s with stiff gains.
+
+| Mode | What changes at the stop | Origin |
+|---|---|---|
+| `continue` | nothing (control run) | ours: no stop |
+| `zero_cmd` | the velocity command goes to zero; the policy keeps running (the stick let go) | the deploy's own input: the command the policy reads |
+| `passive_kd3` | kp 0, kd 3 on all 29 motors | Unitree's `Passive` state, the walking state's LT + B exit |
+| `damp_kd8` | kp 0, kd 8 on all 29 motors | `unitree_rl_gym`'s `create_damping_cmd`, for comparison |
+| `zero_torque` | kp 0, kd 0 | `unitree_rl_gym`'s `create_zero_cmd`, for comparison |
+| `hold_last` | the policy stops; every joint holds its last target with the policy's gains | ours |
+| `fixstand` | Unitree's `FixStand` (its gains and 2 s ramp from the last commanded pose to the default pose) entered straight from walking | ours as a transition: the deploy has none from walking |
+| `zero_cmd_then_passive` | zero command for 2 s, then `Passive` | ours: two of the above, in an order and with a delay we chose |
+| `zero_cmd_then_fixstand` | zero command for 2 s, then `FixStand` | ours, the same |
+
+With a zero command the policy is also told it is standing: when the command's size is below 0.1, the gait-phase
+input is set to (0, 0), in the deploy (`deploy/include/isaaclab/envs/mdp/observations/observations.h` L125-150) and in
+training (`src/tasks/velocity/mdp/observations.py` L47-53).
+
+Each run: 2 s standing, 4 s walking, then the stop at one of 30 moments, one per policy step over the policy's 0.6 s
+gait cycle (6.00-6.58 s), and 6 s simulated after it. Three setups: the mjlab body at 0.5 and at 1.0 m/s, and
+Menagerie's body at 0.5 m/s. The printed output is
+[results/2026-11-10-mjlab_stop.md](results/2026-11-10-mjlab_stop.md).
+
+| Mode | Upright 6 s after the stop: mjlab 0.5 / mjlab 1.0 / Menagerie 0.5 m/s | First non-foot touch after the stop, s, min / median / max: mjlab 0.5 | mjlab 1.0 | Menagerie 0.5 |
+|---|---|---|---|---|
+| `continue` | 30 / 30 / 30 of 30 | none | none | none |
+| `zero_cmd` | 30 / 30 / 30 of 30 | none | none | none |
+| `passive_kd3` | 0 / 0 / 0 of 30 | 0.40 / 0.46 / 0.54 | 0.36 / 0.40 / 0.46 | 0.40 / 0.46 / 0.52 |
+| `damp_kd8` | 0 / 0 / 0 of 30 | 0.58 / 0.71 / 0.80 | 0.46 / 0.55 / 0.64 | 0.58 / 0.69 / 0.80 |
+| `zero_torque` | 0 / 0 / 0 of 30 | 0.28 / 0.31 / 0.38 | 0.24 / 0.32 / 0.36 | 0.26 / 0.32 / 0.36 |
+| `hold_last` | 0 / 0 / 0 of 30 | 0.74 / 0.80 / 1.26 | 0.54 / 0.74 / 1.28 | 0.72 / 0.84 / 1.26 |
+| `fixstand` | 0 / 0 / 0 of 30 | 0.70 / 0.83 / 1.24 | 0.52 / 0.72 / 1.54 | 0.72 / 0.86 / 1.36 |
+| `zero_cmd_then_passive` | 0 / 0 / 0 of 30 | 2.66 / 2.68 / 2.70 | 2.66 / 2.68 / 2.72 | 2.66 / 2.68 / 2.68 |
+| `zero_cmd_then_fixstand` | 0 / 0 / 0 of 30 | 3.56 / 4.08 / 5.34 | 3.68 / 3.96 / 5.80 | 4.24 / 4.68 / 5.68 |
+
+"Upright" is pelvis above 0.6 m and tilted under 30 degrees at the last frame. A "non-foot touch" is floor contact by
+any shape not on the two ankle bodies.
+
+Read in this model:
+
+- Only letting go of the stick kept the walking G1 upright: 90 of 90 runs over the three setups. Every stop that takes
+  the policy out of the loop left it not upright in all 30 runs of every setup.
+- With a zero command the pelvis travelled 0.083-0.136 m after a stop from 0.5 m/s and 0.26-0.345 m from 1.0 m/s, and
+  its horizontal speed stayed under 0.05 m/s for 0.5 s from 0.84-2.0 s after the stop on. A foot lifted at most once
+  after a stop from 0.5 m/s and at most twice from 1.0 m/s, the last 0.52 s after the stop at the latest.
+- `Passive`, the walking state's own exit, put a non-foot shape on the floor 0.36-0.54 s after the stop. Zero torque
+  was faster (0.24-0.38 s), kd 8 damping slower (0.46-0.80 s), `hold_last` and `fixstand` slowest (0.52-1.54 s).
+- Slowing down first did not save the policy-off stops. In both two-stage modes the G1 was upright and almost still
+  at the hand-off in all 90 runs (pelvis 0.003-0.05 m/s). Then `Passive` lost upright 0.46-0.50 s after it began, and
+  `FixStand` 1.14-3.42 s after it began.
+- From a clean start (4 s standing at zero command, then the stop), only the zero command stayed up, on both bodies.
+  `Passive` put a shin or knee on the floor 0.7 s after the stop on both; zero torque 0.4 and 0.68 s; kd 8 damping
+  1.16 and 1.18 s; `hold_last` 3.6 and 3.64 s; `FixStand` 2.9 and 3.42 s.
+- No leg joint asked for more torque than its effort limit, except in `fixstand` from 1.0 m/s (at most 2.33% of
+  steps). MuJoCo raised no instability warning in any run.
+- The 12-joint policy above split the same way: the zero-velocity command kept the G1 up, and every policy-off stop
+  tried left it not upright.
+
+`hold_last` also stands for a case we found no published measurement of: the program that walks the G1 stops
+sending commands (it crashes, or is closed), and the motors keep the last command they got. One G1 EDU tutorial
+says of its low-level example: "Stop it with Ctrl+C. The motors keep their last command."
+([robotics.dinno.be](https://robotics.dinno.be/tutorial-g1-edu.html), undated, read 2026-11-10). We found no Unitree
+document that says what the G1's motors do when low-level commands stop arriving, or after how long. Unitree's
+`unitree_sdk2` warns about the reverse case in `include/unitree/robot/g1/common/terminations.hpp` (main, read
+2026-11-10, L77-78): "When using a wired connection to the robot, a loose network cable may cause the connection to
+be interrupted. If the program continues to run at this time, it will send a step signal to the motors, causing
+violent movement." If the motors do keep the last command, this run's `hold_last` rows are what that does to this
+model: a non-foot shape on the floor 0.54-1.28 s after the last command while walking, 3.6-3.64 s while standing.
+
+Limits of this section:
+
+- **A rebuild of the training physics, not Unitree's sim2sim.** Unitree's README recommends a simulation deployment
+  with `unitree_mujoco` before the real robot, which runs the deploy's own C++ controller; this script runs the policy
+  in its own Python loop on the training model. Training also randomises foot
+  friction, pushes the robot and perturbs the encoders and the base's centre of mass
+  (`src/tasks/velocity/velocity_env_cfg.py` L209-254: foot friction 0.3-1.6, a push every 5-6 s, encoder bias
+  up to 0.015 rad, centre-of-mass offsets up to 5 cm); this script uses one foot friction (0.6) and none of the rest. The
+  integrator is not set in the files read; the script uses MuJoCo's `implicitfast` and prints it.
+- **The ONNX port was not compared with onnxruntime.** The evidence that it runs the policy as trained: the
+  zero-observation REPRO line, the 10 s stand and the walking speeds above.
+- One policy (`v0`), two speeds straight ahead, one gait cycle, one run per moment. No turning, no pushes, no other
+  start poses. The stop is applied at a policy step, not through DDS messages.
+- Upright and touch times describe this model; they say nothing about a real G1's own controllers.
+
 ## What this does not show
+
+For the `unitree_rl_gym` scripts (the 12-joint policy):
 
 - **The upper body is one rigid piece.** In Unitree's `g1_12dof.xml` the torso, head, logo, shoulders, elbows and
   hands are shapes of the pelvis body, fixed in one arm pose; several of them collide (the script prints them). So
@@ -340,6 +449,16 @@ public code already has, on Unitree's public walking policy:
   ONNX export of the G1 walking checkpoint `deploy/pre_train/g1/motion.pt` from `unitree_rl_gym` (linked at commit
   276801e4) in the browser, with MuJoCo compiled to WebAssembly, and lists a walk test ("Falls" 0). The page has no
   stop or exit test.
+- [mawgly/g1-lab](https://github.com/mawgly/g1-lab), a lab whose Claude agents train G1 walking policies and compare
+  them with Unitree's mjlab `v0`, already says much of the mjlab section's stop picture for its own first real-robot
+  run, from its sim2sim runs on Unitree's `unitree_mujoco` and the deploy's controller
+  ([docs/robot-first-run.md](https://github.com/mawgly/g1-lab/blob/main/docs/robot-first-run.md), in Russian, read
+  2026-11-10; it says none of it has been checked on a real robot yet). LT + B is the emergency exit to `Passive`
+  (kp 0, kd 3), and without support `Passive` is a fall: a standing robot lay down in 0.6-0.8 s in their sim2sim
+  (L54-57). There is no transition from `Velocity` to `FixStand` (L67), and `FixStand` on the floor does not hold the
+  robot (L70-73). Their measure of `v0`'s braking after 0.5 m/s is 0.13 m in 3 s (L119-120); in the mjlab section
+  here the pelvis had travelled 0.083-0.136 m 6 s after a stop from 0.5 m/s. They name what the motors do if
+  `rt/lowcmd` stops arriving during `FixStand` or `Velocity` as not checked (L64-66); see `hold_last` above.
 
 ## Run it
 
@@ -356,7 +475,31 @@ python3 sim/stop_handoff.py in out-handoff
 python3 sim/hold_stiffness.py in out-stiffness
 ```
 
-Each script writes into the output folder you give it, which must exist (the `mkdir` line makes all four).
+For the mjlab section, `mjlab_stop.py` needs four of Unitree's files at commit `1425b15f` and MuJoCo Menagerie's
+`unitree_g1` (BotInfo's runs used Menagerie at commit `98a70c569c4c`):
+
+```bash
+C=1425b15f73bd4095f0df53709d7c389c3eb9e790
+R=https://raw.githubusercontent.com/unitreerobotics/unitree_rl_mjlab/$C
+D=in-mjlab/unitreerobotics/unitree_rl_mjlab
+for f in deploy/robots/g1/config/policy/velocity/v0/exported/policy.onnx \
+         deploy/robots/g1/config/policy/velocity/v0/params/deploy.yaml \
+         deploy/robots/g1/config/config.yaml \
+         src/assets/robots/unitree_g1/xmls/g1.xml; do
+  mkdir -p "$D/$(dirname $f)" && curl -sfL "$R/$f" -o "$D/$f"
+done
+git clone https://github.com/google-deepmind/mujoco_menagerie in-mjlab/menagerie
+git -C in-mjlab/menagerie checkout 98a70c569c4c
+mkdir -p out-mjlab
+python3 sim/mjlab_stop.py in-mjlab out-mjlab
+```
+
+It prints the sha256 of the four Unitree files (compare them with the top of
+[results/2026-11-10-mjlab_stop.md](results/2026-11-10-mjlab_stop.md)) and writes `out-mjlab/mjlab_stop.md`,
+`out-mjlab/results.json` and nine `qpos_*.npy` trajectories (one per stop: 2 s before and 6 s after the first stop
+moment, mjlab body, 0.5 m/s, 30 frames a second). It takes about 70 s on BotInfo's sandbox.
+
+Each script writes into the output folder you give it, which must exist (the `mkdir` lines above make them).
 `hold_stiffness.py` prints its tables and writes them to `out-stiffness/hold_stiffness.md`, with every field in
 `out-stiffness/results.json` and `qpos_*.npy` trajectories for the clean starts and the 4.00 s hand-offs, with the
 caps on and off (`qpos_nocap_*`).
@@ -367,8 +510,9 @@ table and writes `out-handoff/results.json`, `out-handoff/stop_handoff.md` and s
 part of the script, and its lines at the end of `results/2026-11-08-stop_walk.md`, have since been removed. It ran
 after the table was printed and changed none of it.
 
-Each script reads `motion.pt` with a restricted unpickler that imports nothing the file names: plain containers map
+Each `unitree_rl_gym` script reads `motion.pt` with a restricted unpickler that imports nothing the file names: plain containers map
 to Python's own, tensor rebuilds to the script's reader, and every other name to an inert stand-in. A tensor whose
 offset, size or stride would reach outside its stored data is refused.
 
-Licence: Apache-2.0. The script reads Unitree's files (BSD-3-Clause) from your clone; none are included here.
+Licence: Apache-2.0. The scripts read Unitree's files and Menagerie's model from your own copies (`unitree_rl_gym` is
+BSD-3-Clause, Menagerie's `unitree_g1` BSD-3-Clause); none of those files are included here.
